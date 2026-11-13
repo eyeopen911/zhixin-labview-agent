@@ -91,7 +91,7 @@ class Codex(unittest.TestCase):
 class HTTP(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.state=backend.AppState(backend.ModelConfig())
+        cls.state=backend.AppState(backend.ModelConfig(),provider="openai")
         cls.server=ThreadingHTTPServer(('127.0.0.1',0),backend.build_handler(cls.state))
         cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True);cls.thread.start()
     @classmethod
