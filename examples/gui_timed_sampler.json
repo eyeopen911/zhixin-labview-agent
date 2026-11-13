@@ -1,0 +1,255 @@
+{
+  "kind": "gui",
+  "name": "GuiTimedSampler",
+  "description": "真实Start、Stop、Reset和Exit按钮事件；Timeout驱动有限数组采样，Stop暂停，Reset清空并停止。",
+  "inputs": [
+    {
+      "name": "Samples",
+      "type": "array{double}",
+      "default": [
+        1.0,
+        2.0,
+        3.0
+      ]
+    },
+    {
+      "name": "Gain",
+      "type": "double",
+      "default": 2.0
+    },
+    {
+      "name": "IntervalMs",
+      "type": "int32",
+      "default": 100
+    }
+  ],
+  "variables": [
+    {
+      "name": "Position",
+      "type": "int32",
+      "initial": "0"
+    },
+    {
+      "name": "Buffer",
+      "type": "array{double}",
+      "initial": "[]"
+    },
+    {
+      "name": "IsRunning",
+      "type": "bool",
+      "initial": "False"
+    },
+    {
+      "name": "Quit",
+      "type": "bool",
+      "initial": "False"
+    },
+    {
+      "name": "ResetTimes",
+      "type": "int32",
+      "initial": "0"
+    }
+  ],
+  "buttons": [
+    {
+      "name": "Start",
+      "body": [
+        {
+          "op": "if",
+          "condition": "Position >= len(Samples)",
+          "then": [
+            {
+              "op": "set",
+              "name": "Position",
+              "expression": "0"
+            },
+            {
+              "op": "set",
+              "name": "Buffer",
+              "expression": "[]"
+            }
+          ],
+          "else": []
+        },
+        {
+          "op": "set",
+          "name": "IsRunning",
+          "expression": "len(Samples)>0"
+        }
+      ]
+    },
+    {
+      "name": "Stop",
+      "body": [
+        {
+          "op": "set",
+          "name": "IsRunning",
+          "expression": "False"
+        }
+      ]
+    },
+    {
+      "name": "Reset",
+      "body": [
+        {
+          "op": "set",
+          "name": "Position",
+          "expression": "0"
+        },
+        {
+          "op": "set",
+          "name": "Buffer",
+          "expression": "[]"
+        },
+        {
+          "op": "set",
+          "name": "IsRunning",
+          "expression": "False"
+        },
+        {
+          "op": "set",
+          "name": "ResetTimes",
+          "expression": "ResetTimes+1"
+        }
+      ]
+    },
+    {
+      "name": "Exit",
+      "body": [
+        {
+          "op": "set",
+          "name": "IsRunning",
+          "expression": "False"
+        },
+        {
+          "op": "set",
+          "name": "Quit",
+          "expression": "True"
+        }
+      ]
+    }
+  ],
+  "timeout": {
+    "interval": "IntervalMs",
+    "body": [
+      {
+        "op": "if",
+        "condition": "IsRunning",
+        "then": [
+          {
+            "op": "if",
+            "condition": "Position < len(Samples)",
+            "then": [
+              {
+                "op": "set",
+                "name": "Buffer",
+                "expression": "append(Buffer, Samples[Position]*Gain)"
+              },
+              {
+                "op": "set",
+                "name": "Position",
+                "expression": "Position+1"
+              }
+            ],
+            "else": []
+          },
+          {
+            "op": "if",
+            "condition": "Position >= len(Samples)",
+            "then": [
+              {
+                "op": "set",
+                "name": "IsRunning",
+                "expression": "False"
+              }
+            ],
+            "else": []
+          }
+        ],
+        "else": []
+      }
+    ]
+  },
+  "exit_condition": "Quit",
+  "outputs": [
+    {
+      "name": "TickCount",
+      "expression": "Position"
+    },
+    {
+      "name": "Values",
+      "expression": "Buffer"
+    },
+    {
+      "name": "Average",
+      "expression": "mean(Buffer)"
+    },
+    {
+      "name": "Running",
+      "expression": "IsRunning"
+    },
+    {
+      "name": "ResetCount",
+      "expression": "ResetTimes"
+    }
+  ],
+  "tests": [
+    {
+      "inputs": {
+        "Samples": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "Gain": 2.0,
+        "IntervalMs": 100
+      },
+      "actions": [
+        {
+          "event": "Start"
+        },
+        {
+          "wait": {
+            "TickCount": 1
+          }
+        },
+        {
+          "event": "Stop"
+        },
+        {
+          "stable": [
+            "TickCount",
+            "Values",
+            "Running"
+          ],
+          "ticks": 3
+        },
+        {
+          "event": "Reset"
+        },
+        {
+          "expect": {
+            "TickCount": 0,
+            "Values": [],
+            "Running": false
+          }
+        },
+        {
+          "event": "Start"
+        },
+        {
+          "wait": {
+            "TickCount": 3,
+            "Running": false
+          }
+        },
+        {
+          "event": "Exit"
+        }
+      ]
+    }
+  ],
+  "assumptions": [
+    "所有输入均为软件数据。Stop暂停，Exit正常结束事件循环。"
+  ]
+}

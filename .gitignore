@@ -1,0 +1,38 @@
+# Local credentials and machine settings
+.env
+.env.*
+!.env.example
+*config.local.*
+*.pem
+*.key
+*.pfx
+*.p12
+id_rsa*
+id_ed25519*
+auth.json
+hosts.yml
+# Runtime state and generated native files
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+designs/
+imports/
+artifacts/
+tools/
+interop/
+*.vi
+*.ctl
+*.lvproj
+*.lvlib
+*.dll
+*.exe
+*.raw
+*.log
+*.zip
+*.tar.gz
+# Editor / machine state
+.DS_Store
+.idea/
+.vscode/
+.codegraph/

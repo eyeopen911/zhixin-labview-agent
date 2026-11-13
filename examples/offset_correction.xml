@@ -1,0 +1,6 @@
+<VI _name="Standalone_OffsetCorrection_Demo.vi" description="Simulation-only scalar offset correction. CorrectedCurrent = RawCurrent - Offset. No hardware calls.">
+  <Control _name="RawCurrent" conIdx="0" connection="required" outputs="value:1.value" type="double" uid="1" uid_parent="root" value="12.5"/>
+  <Control _name="Offset" conIdx="1" connection="required" outputs="value:2.value" type="double" uid="2" uid_parent="root" value="2.5"/>
+  <Node _name="Subtract" inputs="x:1.value,y:2.value" outputs="x-y:3.x-y" uid="3" uid_parent="root"/>
+  <Indicator _name="CorrectedCurrent" conIdx="4" connection="recommended" inputs="value:3.x-y" type="double" uid="4" uid_parent="root" value="0"/>
+</VI>

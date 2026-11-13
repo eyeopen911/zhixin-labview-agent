@@ -1,0 +1,9 @@
+[project]
+name = "zhixin-labview-agent"
+version = "0.6.1"
+description = "Local natural-language LabVIEW design, constrained IR compilation and native verification assistant"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

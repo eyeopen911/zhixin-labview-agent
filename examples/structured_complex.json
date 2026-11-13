@@ -1,0 +1,384 @@
+{
+  "kind": "structured",
+  "name": "ArrayEventStateMachine",
+  "description": "真实User Event命令驱动的采样数组校准状态机；0复位，1启动，2处理，3停止。",
+  "inputs": [
+    {
+      "name": "Samples",
+      "type": "array{double}",
+      "default": [
+        1.0,
+        2.0,
+        3.0
+      ]
+    },
+    {
+      "name": "Commands",
+      "type": "array{int32}",
+      "default": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "Gain",
+      "type": "double",
+      "default": 2.0
+    },
+    {
+      "name": "Offset",
+      "type": "double",
+      "default": 1.0
+    },
+    {
+      "name": "Limit",
+      "type": "double",
+      "default": 5.0
+    }
+  ],
+  "variables": [
+    {
+      "name": "State",
+      "type": "int32",
+      "initial": "0"
+    },
+    {
+      "name": "Buffer",
+      "type": "array{double}",
+      "initial": "[]"
+    },
+    {
+      "name": "Total",
+      "type": "double",
+      "initial": "0.0"
+    },
+    {
+      "name": "Good",
+      "type": "bool",
+      "initial": "False"
+    },
+    {
+      "name": "Events",
+      "type": "int32",
+      "initial": "0"
+    },
+    {
+      "name": "Trace",
+      "type": "array{int32}",
+      "initial": "[]"
+    }
+  ],
+  "program": [
+    {
+      "op": "events",
+      "commands": "Commands",
+      "event": "Command",
+      "body": [
+        {
+          "op": "set",
+          "name": "Events",
+          "expression": "Events+1"
+        },
+        {
+          "op": "if",
+          "condition": "Command==0",
+          "then": [
+            {
+              "op": "set",
+              "name": "State",
+              "expression": "0"
+            },
+            {
+              "op": "set",
+              "name": "Buffer",
+              "expression": "[]"
+            },
+            {
+              "op": "set",
+              "name": "Total",
+              "expression": "0.0"
+            },
+            {
+              "op": "set",
+              "name": "Good",
+              "expression": "False"
+            }
+          ],
+          "else": [
+            {
+              "op": "state_machine",
+              "state": "State",
+              "states": [
+                {
+                  "value": 0,
+                  "name": "Idle",
+                  "body": [
+                    {
+                      "op": "if",
+                      "condition": "Command==1",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "1"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "if",
+                      "condition": "Command==3",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "3"
+                        }
+                      ],
+                      "else": []
+                    }
+                  ]
+                },
+                {
+                  "value": 1,
+                  "name": "Ready",
+                  "body": [
+                    {
+                      "op": "if",
+                      "condition": "Command==2",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "Total",
+                          "expression": "0.0"
+                        },
+                        {
+                          "op": "set",
+                          "name": "Good",
+                          "expression": "True"
+                        },
+                        {
+                          "op": "for_each",
+                          "array": "Samples",
+                          "item": "sample",
+                          "index": "sampleIndex",
+                          "body": [
+                            {
+                              "op": "set",
+                              "name": "Total",
+                              "expression": "Total+(sample-Offset)*Gain"
+                            },
+                            {
+                              "op": "set",
+                              "name": "Good",
+                              "expression": "Good and abs((sample-Offset)*Gain)<=Limit"
+                            }
+                          ],
+                          "collect": [
+                            {
+                              "name": "Buffer",
+                              "expression": "(sample-Offset)*Gain"
+                            }
+                          ]
+                        },
+                        {
+                          "op": "set",
+                          "name": "Good",
+                          "expression": "Good and len(Buffer)>0"
+                        },
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "2"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "if",
+                      "condition": "Command==3",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "3"
+                        }
+                      ],
+                      "else": []
+                    }
+                  ]
+                },
+                {
+                  "value": 2,
+                  "name": "Completed",
+                  "body": [
+                    {
+                      "op": "if",
+                      "condition": "Command==1",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "1"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "if",
+                      "condition": "Command==3",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "3"
+                        }
+                      ],
+                      "else": []
+                    }
+                  ]
+                },
+                {
+                  "value": 3,
+                  "name": "Stopped",
+                  "body": [
+                    {
+                      "op": "if",
+                      "condition": "Command==1",
+                      "then": [
+                        {
+                          "op": "set",
+                          "name": "State",
+                          "expression": "1"
+                        }
+                      ],
+                      "else": []
+                    }
+                  ]
+                }
+              ],
+              "default": [
+                {
+                  "op": "set",
+                  "name": "State",
+                  "expression": "0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "op": "set",
+          "name": "Trace",
+          "expression": "append(Trace,State)"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "Corrected",
+      "expression": "Buffer"
+    },
+    {
+      "name": "Average",
+      "expression": "mean(Buffer)"
+    },
+    {
+      "name": "Pass",
+      "expression": "Good"
+    },
+    {
+      "name": "FinalState",
+      "expression": "State"
+    },
+    {
+      "name": "EventCount",
+      "expression": "Events"
+    },
+    {
+      "name": "StateTrace",
+      "expression": "Trace"
+    }
+  ],
+  "tests": [
+    {
+      "inputs": {
+        "Samples": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "Commands": [
+          1,
+          2,
+          3
+        ],
+        "Gain": 2.0,
+        "Offset": 1.0,
+        "Limit": 5.0
+      }
+    },
+    {
+      "inputs": {
+        "Samples": [
+          1.0,
+          2.0,
+          3.0
+        ],
+        "Commands": [
+          1,
+          2
+        ],
+        "Gain": 3.0,
+        "Offset": 1.0,
+        "Limit": 5.0
+      }
+    },
+    {
+      "inputs": {
+        "Samples": [],
+        "Commands": [
+          1,
+          2
+        ],
+        "Gain": 2.0,
+        "Offset": 1.0,
+        "Limit": 5.0
+      }
+    },
+    {
+      "inputs": {
+        "Samples": [
+          1.0,
+          2.0
+        ],
+        "Commands": [
+          2,
+          1,
+          2,
+          0,
+          2
+        ],
+        "Gain": 2.0,
+        "Offset": 1.0,
+        "Limit": 5.0
+      }
+    },
+    {
+      "inputs": {
+        "Samples": [
+          1.0
+        ],
+        "Commands": [],
+        "Gain": 2.0,
+        "Offset": 1.0,
+        "Limit": 5.0
+      }
+    }
+  ],
+  "assumptions": [
+    "命令0复位/1启动/2处理/3停止；处理仅在Ready状态有效；内部结束事件不计入EventCount。"
+  ]
+}
